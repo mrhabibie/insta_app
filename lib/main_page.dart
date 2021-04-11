@@ -13,9 +13,22 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   bool isLoggedIn = false;
+
   int _selectedIndex = 0;
+
+  ScrollController scrollController = ScrollController();
+  PostBloc postBloc;
+
+  void onScroll() {
+    double maxScroll = scrollController.position.maxScrollExtent;
+    double currentScroll = scrollController.position.pixels;
+
+    if (currentScroll == maxScroll) postBloc.add(PostEvent());
+  }
+
   static const TextStyle optionStyle =
       TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
+
   static const List<Widget> _widgetOptions = <Widget>[
     Text(
       'Index 0: Home',
@@ -43,6 +56,9 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    postBloc = BlocProvider.of<PostBloc>(context);
+    scrollController.addListener(onScroll);
+
     return Scaffold(
       appBar: AppBar(
         title: Text("InstaApp"),
@@ -72,8 +88,21 @@ class _MainPageState extends State<MainPage> {
         } else {
           PostLoaded postLoaded = state as PostLoaded;
           return ListView.builder(
-            itemBuilder: (context, index) => PostItem(postLoaded.posts[index]),
-            itemCount: postLoaded.posts.length,
+            controller: scrollController,
+            itemBuilder: (context, index) => (index < postLoaded.posts.length)
+                ? PostItem(postLoaded.posts[index])
+                : Container(
+                    child: Center(
+                      child: SizedBox(
+                        width: 30,
+                        height: 30,
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  ),
+            itemCount: (postLoaded.hasReachedMax)
+                ? postLoaded.posts.length
+                : postLoaded.posts.length + 1,
           );
         }
       }),
